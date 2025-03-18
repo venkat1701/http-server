@@ -4,39 +4,42 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class URLParser {
+    private final static Logger logger = Logger.getLogger(URLParser.class.getName());
     private final InputStream inputStream;
     private final Map<String, String> resources;
 
     public URLParser(InputStream inputStream) {
         this.inputStream = inputStream;
-        this.resources = new HashMap<String, String>();
+        this.resources = new HashMap<>();
         this.resources.put("/", "");
     }
 
-    private boolean checkResourceExistsInServer() {
-        if(this.inputStream == null) {
-            return false;
-        }
-
-        try(var reader = new BufferedReader(new InputStreamReader(this.inputStream))) {
-            String line = reader.readLine();
-            String[] parts = line.split(" ");
-            if(parts.length != 2) {
-                return false;
-            } else {
-                return this.resources.containsKey(parts[1]);
-            }
-        } catch(IOException e) {
-            return false;
-        }
-    }
-
     public String respondToClient() {
-        if(this.checkResourceExistsInServer()) {
+        String path = this.getRequestedPath();
+        if(path != null && this.resources.containsKey(path)) {
             return ResponseStatus.ACCEPTED.getResponse();
         } else return ResponseStatus.NOT_FOUND.getResponse();
+    }
+
+    public String getRequestedPath() {
+        try(BufferedReader br = new BufferedReader(new InputStreamReader(this.inputStream))) {
+            String line = br.readLine();
+            if(line == null) return null;
+
+            String[] parts = line.split(" ");
+            if(parts.length == 2) {
+                line = line + "\r\n";
+                parts = line.split(" ");
+            }
+
+            return parts[1];
+        } catch(IOException e) {
+            logger.warning(e.getMessage());
+            return null;
+        }
     }
 
 }
