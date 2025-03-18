@@ -14,6 +14,10 @@ public class Main {
        serverSocket.setReuseAddress(true);
 
        serverSocket.accept(); // Wait for connection from client. Blocking method since it waits for a connection.
+
+       Socket client = new Socket("localhost", 4221);
+       client = serverSocket.accept();
+       client.getOutputStream().write("HTTP/1.1 200 OK\\r\\n\\r\\n".getBytes());
        System.out.println("accepted new connection");
      } catch (IOException e) {
        System.out.println("IOException: " + e.getMessage());
