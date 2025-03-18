@@ -6,6 +6,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+/**
+ * URLParser is responsible for parsing the request target in an HTTP request. It contains a map of resources that are available with the dummy server.
+ * What we do here is simple. We simply fetch the input stream of the connection and extract the request target to check whether it exists in the resource map or not. Well if it is available, then
+ * we return a ResponseStatus of it being available otherwise a 404 Not Found.
+ * One peculiar thing to note is that the request might or might not end with a CRLF. That means, it might not have an EOF marker. In that case, it's our responsibility to add one from our end in order
+ * to ensure better flow of program control.
+ * @author Venkat
+ * @see ResponseStatus
+ */
 public class URLParser {
     private final static Logger logger = Logger.getLogger(URLParser.class.getName());
     private final InputStream inputStream;
