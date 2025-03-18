@@ -13,9 +13,7 @@ public class Main {
        // Makes sure that we dont get any issues about busy ports.
        serverSocket.setReuseAddress(true);
 
-
-       Socket client = new Socket("localhost", 4221);
-       client = serverSocket.accept();
+       Socket client = serverSocket.accept();
        client.getOutputStream().write("HTTP/1.1 200 OK\\r\\n\\r\\n".getBytes());
        System.out.println("accepted new connection");
      } catch (IOException e) {
