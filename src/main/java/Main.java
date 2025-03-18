@@ -13,7 +13,6 @@ public class Main {
        // Makes sure that we dont get any issues about busy ports.
        serverSocket.setReuseAddress(true);
 
-       serverSocket.accept(); // Wait for connection from client. Blocking method since it waits for a connection.
 
        Socket client = new Socket("localhost", 4221);
        client = serverSocket.accept();
