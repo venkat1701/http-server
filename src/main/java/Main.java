@@ -18,11 +18,14 @@ public class Main {
            Socket client = serverSocket.accept();
            BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
            String request = in.readLine();
-           if (request.split(" ")[1].equals("/")) {
-               client.getOutputStream().write(ResponseStatus.ACCEPTED.getResponse().getBytes());
+           URLParser parser = new URLParser(request);
+           if (parser.checkResourceExistsInServer()) {
+               if(parser.echoResource() != null)
+                client.getOutputStream().write(parser.generateCRLFStringForResource(parser.echoResource(), ResponseStatus.ACCEPTED).getBytes());
            } else {
                client.getOutputStream().write(ResponseStatus.NOT_FOUND.getResponse().getBytes());
            }
+
 
            System.out.println("accepted new connection");
            client.shutdownOutput();

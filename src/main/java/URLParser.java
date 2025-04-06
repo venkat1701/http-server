@@ -6,32 +6,41 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class URLParser {
-    private final InputStream inputStream;
+    private String requestLine;
     private final Map<String, String> resources;
 
-    public URLParser(InputStream inputStream) {
-        this.inputStream = inputStream;
+    public URLParser(String requestLine) {
+        this.requestLine = requestLine;
         this.resources = new HashMap<String, String>();
         this.resources.put("/", "");
+        this.resources.put("/echo", "");
     }
 
-    private boolean checkResourceExistsInServer() {
-        if(this.inputStream == null) {
+    public boolean checkResourceExistsInServer() {
+        if(this.requestLine == null) {
             return false;
         }
+        String[] parts = this.requestLine.split(" ");
+        if(parts.length < 2) {
+            return false;
+        } else {
+            return this.resources.containsKey(parts[1]) || parts[1].startsWith("/echo");
+        }
+    }
 
-        try{
-            var reader = new BufferedReader(new InputStreamReader(this.inputStream));
-            String line = reader.readLine();
-            String[] parts = line.split(" ");
-            if(parts.length != 2) {
-                return false;
-            } else {
-                return this.resources.containsKey(parts[1]);
-            }
-        } catch(IOException e) {
-            return false;
-        }
+    public String echoResource() {
+        String[] parts = this.requestLine.split(" ");
+        if(parts[1].startsWith("/echo")) {
+            return parts[1].split("/")[2];
+        } else return null;
+    }
+
+    public String generateCRLFStringForResource(String resource, ResponseStatus status) {
+        if(status == ResponseStatus.ACCEPTED) {
+            return ResponseStatus.ACCEPTED.getResponse() + String.format(
+                    "Content-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", resource.length(), resource
+            );
+        } else return ResponseStatus.NOT_FOUND.getResponse();
     }
 
     public String respondToClient() {
