@@ -23,7 +23,7 @@ public class Main {
                if(parser.echoResource() != null)
                    client.getOutputStream().write(parser.generateCRLFStringForResource(parser.echoResource(), ResponseStatus.ACCEPTED).getBytes());
                else
-                   client.getOutputStream().write(ResponseStatus.ACCEPTED.getResponse().getBytes());
+                   client.getOutputStream().write(ResponseStatus.ACCEPTED_PLAIN.getResponse().getBytes());
            } else {
                client.getOutputStream().write(ResponseStatus.NOT_FOUND.getResponse().getBytes());
            }
