@@ -20,7 +20,8 @@ public class URLParser {
             return false;
         }
 
-        try(var reader = new BufferedReader(new InputStreamReader(this.inputStream))) {
+        try{
+            var reader = new BufferedReader(new InputStreamReader(this.inputStream));
             String line = reader.readLine();
             String[] parts = line.split(" ");
             if(parts.length != 2) {
