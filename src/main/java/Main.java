@@ -21,7 +21,9 @@ public class Main {
            URLParser parser = new URLParser(request);
            if (parser.checkResourceExistsInServer()) {
                if(parser.echoResource() != null)
-                client.getOutputStream().write(parser.generateCRLFStringForResource(parser.echoResource(), ResponseStatus.ACCEPTED).getBytes());
+                   client.getOutputStream().write(parser.generateCRLFStringForResource(parser.echoResource(), ResponseStatus.ACCEPTED).getBytes());
+               else
+                   client.getOutputStream().write(ResponseStatus.ACCEPTED.getResponse().getBytes());
            } else {
                client.getOutputStream().write(ResponseStatus.NOT_FOUND.getResponse().getBytes());
            }
