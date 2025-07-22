@@ -1,9 +1,10 @@
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
 
 public class URLParser {
 
-    public void handleRequest(Socket socket) throws IOException {
+    public void handleRequest(Socket socket, String[] args) throws IOException {
         try {
             System.out.println("accepted new connection");
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -17,6 +18,16 @@ public class URLParser {
                 case String s when s.startsWith("/echo/") -> {
                     String echoString = s.substring("/echo/".length());
                     new HttpResponse(StatusCode.OK, echoString).send(out);
+                }
+                case "/files" -> {
+                    String filename = request.path.substring(7);
+                    File f = new File(args[1], filename);
+                    if(f.exists()) {
+                        byte[] content = Files.readAllBytes(f.toPath());
+                        new HttpResponse(StatusCode.OK, new String(content), "application/octet-stream").send(out);
+                    } else {
+                        new HttpResponse(StatusCode.NOT_FOUND, "").send(out);
+                    }
                 }
                 case "/echo" -> new HttpResponse(StatusCode.OK, request.body).send(out);
                 case "/user-agent" -> new HttpResponse(StatusCode.OK, request.headers.getOrDefault("User-Agent", "")).send(out);

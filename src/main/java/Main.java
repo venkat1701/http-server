@@ -21,7 +21,7 @@ public class Main {
                 executor.submit(() -> {
                     try {
                         URLParser parser = new URLParser();
-                        parser.handleRequest(client);
+                        parser.handleRequest(client, args);
                     } catch (IOException e) {
                         System.out.println("Error handling client: " + e.getMessage());
                     } finally {
