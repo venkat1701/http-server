@@ -1,52 +1,39 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.OutputStreamWriter;
+import java.net.Socket;
 
 public class URLParser {
-    private String requestLine;
-    private final Map<String, String> resources;
 
-    public URLParser(String requestLine) {
-        this.requestLine = requestLine;
-        this.resources = new HashMap<String, String>();
-        this.resources.put("/", "");
-        this.resources.put("/echo", "");
-    }
+    public void handleRequest(Socket socket) throws IOException {
+        while (!socket.isClosed()) {
+            try {
+                System.out.println("accepted new connection");
+                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-    public boolean checkResourceExistsInServer() {
-        if(this.requestLine == null) {
-            return false;
+                HttpRequest request = HttpRequest.parseFromSocket(in);
+
+                switch (request.path) {
+                    case "/" -> new HttpResponse(StatusCode.OK, "").send(out);
+                    case "/index.html" -> new HttpResponse(StatusCode.OK, "<html><body>Hello, world!</body></html>").send(out);
+                    case String s when s.startsWith("/echo/") -> {
+                        String echoString = s.substring("/echo/".length());
+                        new HttpResponse(StatusCode.OK, echoString).send(out);
+                    }
+                    case "/echo" -> new HttpResponse(StatusCode.OK, request.body).send(out);
+                    case "/user-agent" -> new HttpResponse(StatusCode.OK, request.headers.getOrDefault("User-Agent", "")).send(out);
+                    case "/bobo/bob.txt" -> new HttpResponse(StatusCode.OK, "Bob").send(out);
+                    default -> new HttpResponse(StatusCode.NOT_FOUND, "").send(out);
+                }
+
+                out.flush();
+                in.close();
+            } catch (IOException e) {
+                System.out.println("IOException: " + e.getMessage());
+            }
         }
-        String[] parts = this.requestLine.split(" ");
-        if(parts.length < 2) {
-            return false;
-        } else {
-            return this.resources.containsKey(parts[1]) || parts[1].startsWith("/echo");
-        }
     }
-
-    public String echoResource() {
-        String[] parts = this.requestLine.split(" ");
-        if(parts[1].startsWith("/echo")) {
-            return parts[1].split("/")[2];
-        } else return null;
-    }
-
-    public String generateCRLFStringForResource(String resource, ResponseStatus status) {
-        if(status == ResponseStatus.ACCEPTED) {
-            return ResponseStatus.ACCEPTED.getResponse() + String.format(
-                    "Content-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", resource.length(), resource
-            );
-        } else return ResponseStatus.NOT_FOUND.getResponse();
-    }
-
-    public String respondToClient() {
-        if(this.checkResourceExistsInServer()) {
-            return ResponseStatus.ACCEPTED.getResponse();
-        } else return ResponseStatus.NOT_FOUND.getResponse();
-    }
-
 }
