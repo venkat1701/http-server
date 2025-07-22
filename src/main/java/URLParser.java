@@ -1,4 +1,9 @@
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.nio.file.Files;
 
@@ -19,10 +24,10 @@ public class URLParser {
                     String echoString = s.substring("/echo/".length());
                     new HttpResponse(StatusCode.OK, echoString).send(out);
                 }
-                case "/files" -> {
-                    String filename = request.path.substring(7);
+                case String s when s.startsWith("/files/") -> {
+                    String filename = s.substring("/files/".length());
                     File f = new File(args[1], filename);
-                    if(f.exists()) {
+                    if (f.exists()) {
                         byte[] content = Files.readAllBytes(f.toPath());
                         new HttpResponse(StatusCode.OK, new String(content), "application/octet-stream").send(out);
                     } else {
