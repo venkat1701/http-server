@@ -1,5 +1,6 @@
 public enum StatusCode {
     OK(200, "OK"),
+    CREATED(201, "Created"),
     NO_CONTENT(204, "No Content"),
     NOT_FOUND(404, "Not Found");
 

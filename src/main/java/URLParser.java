@@ -27,16 +27,26 @@ public class URLParser {
                 case String s when s.startsWith("/files/") -> {
                     String filename = s.substring("/files/".length());
                     File f = new File(args[1], filename);
-                    if (f.exists()) {
-                        byte[] content = Files.readAllBytes(f.toPath());
-                        new HttpResponse(StatusCode.OK, new String(content), "application/octet-stream").send(out);
-                    } else {
-                        new HttpResponse(StatusCode.NOT_FOUND, "").send(out);
+                    if ("POST".equals(request.method)) {
+                        try {
+                            Files.write(f.toPath(), request.body.getBytes());
+                            new HttpResponse(StatusCode.CREATED, "").send(out);
+                        } catch (IOException e) {
+                            new HttpResponse(StatusCode.NOT_FOUND, "").send(out);
+                        }
+                    } else if ("GET".equals(request.method)) {
+                        if (f.exists()) {
+                            byte[] content = Files.readAllBytes(f.toPath());
+                            new HttpResponse(StatusCode.OK, new String(content), "application/octet-stream").send(out);
+                        } else {
+                            new HttpResponse(StatusCode.NOT_FOUND, "").send(out);
+                        }
                     }
                 }
                 case "/echo" -> new HttpResponse(StatusCode.OK, request.body).send(out);
                 case "/user-agent" -> new HttpResponse(StatusCode.OK, request.headers.getOrDefault("User-Agent", "")).send(out);
                 case "/bobo/bob.txt" -> new HttpResponse(StatusCode.OK, "Bob").send(out);
+
                 default -> new HttpResponse(StatusCode.NOT_FOUND, "").send(out);
             }
 
