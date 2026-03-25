@@ -24,14 +24,6 @@ public class Main {
                         parser.handleRequest(client, args);
                     } catch (IOException e) {
                         System.out.println("Error handling client: " + e.getMessage());
-                    } finally {
-                        try {
-                            if (!client.isClosed()) {
-                                client.close();
-                            }
-                        } catch (IOException e) {
-                            System.out.println("Error closing client socket: " + e.getMessage());
-                        }
                     }
                 });
             }

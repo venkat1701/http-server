@@ -17,58 +17,101 @@ public class URLParser {
             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             OutputStream binaryOut = socket.getOutputStream();
 
-            HttpRequest request = HttpRequest.parseFromSocket(in);
+            // Handle persistent connections - keep processing requests until Connection: close is received
+            boolean keepAlive = true;
+            while (keepAlive) {
+                HttpRequest request = HttpRequest.parseFromSocket(in);
 
-            switch (request.path) {
-                case "/" -> new HttpResponse(StatusCode.OK, "").send(out);
-                case "/index.html" -> new HttpResponse(StatusCode.OK, "<html><body>Hello, world!</body></html>").send(out);
-                case String s when s.startsWith("/echo/") -> {
-                    String echoString = s.substring("/echo/".length());
-                    String acceptEncoding = request.headers.getOrDefault("Accept-Encoding", "");
+                String connectionHeader = request.headers.getOrDefault("Connection", "");
+                boolean shouldClose = "close".equalsIgnoreCase(connectionHeader);
 
-                    if (acceptEncoding.contains("gzip")) {
-                        try {
-                            byte[] compressedBody = CompressionUtil.compressGzip(echoString);
-                            HttpResponse response = new HttpResponse(StatusCode.OK, compressedBody, "text/plain");
-                            response.addHeader("Content-Encoding", "gzip");
-                            response.sendWithBinary(out, binaryOut);
-                        } catch (IOException e) {
-                            new HttpResponse(StatusCode.OK, echoString).send(out);
-                        }
-                    } else {
-                        new HttpResponse(StatusCode.OK, echoString).send(out);
-                    }
+                HttpResponse response = processRequest(request, args, binaryOut, out);
+
+                if (shouldClose) {
+                    response.addHeader("Connection", "close");
+                    keepAlive = false;
                 }
-                case String s when s.startsWith("/files/") -> {
-                    String filename = s.substring("/files/".length());
-                    File f = new File(args[1], filename);
-                    if ("POST".equals(request.method)) {
-                        try {
-                            Files.write(f.toPath(), request.body.getBytes());
-                            new HttpResponse(StatusCode.CREATED, "").send(out);
-                        } catch (IOException e) {
-                            new HttpResponse(StatusCode.NOT_FOUND, "").send(out);
-                        }
-                    } else if ("GET".equals(request.method)) {
-                        if (f.exists()) {
-                            byte[] content = Files.readAllBytes(f.toPath());
-                            new HttpResponse(StatusCode.OK, new String(content), "application/octet-stream").send(out);
-                        } else {
-                            new HttpResponse(StatusCode.NOT_FOUND, "").send(out);
-                        }
-                    }
+                sendResponse(response, out, binaryOut);
+                if (!keepAlive) {
+                    break;
                 }
-                case "/echo" -> new HttpResponse(StatusCode.OK, request.body).send(out);
-                case "/user-agent" -> new HttpResponse(StatusCode.OK, request.headers.getOrDefault("User-Agent", "")).send(out);
-                case "/bobo/bob.txt" -> new HttpResponse(StatusCode.OK, "Bob").send(out);
-
-                default -> new HttpResponse(StatusCode.NOT_FOUND, "").send(out);
             }
-
-            out.flush();
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
             throw e;
+        } finally {
+            try {
+                if (!socket.isClosed()) {
+                    socket.close();
+                }
+            } catch (IOException e) {
+                System.out.println("Error closing socket: " + e.getMessage());
+            }
+        }
+    }
+
+    private HttpResponse processRequest(HttpRequest request, String[] args, OutputStream binaryOut, BufferedWriter out) {
+        return switch (request.path) {
+            case "/" -> new HttpResponse(StatusCode.OK, "");
+            case "/index.html" -> new HttpResponse(StatusCode.OK, "<html><body>Hello, world!</body></html>");
+            case String s when s.startsWith("/echo/") -> processEchoRequest(s, request);
+            case String s when s.startsWith("/files/") -> processFilesRequest(s, request, args);
+            case "/echo" -> new HttpResponse(StatusCode.OK, request.body);
+            case "/user-agent" -> new HttpResponse(StatusCode.OK, request.headers.getOrDefault("User-Agent", ""));
+            case "/bobo/bob.txt" -> new HttpResponse(StatusCode.OK, "Bob");
+            default -> new HttpResponse(StatusCode.NOT_FOUND, "");
+        };
+    }
+
+    private HttpResponse processEchoRequest(String path, HttpRequest request) {
+        String echoString = path.substring("/echo/".length());
+        String acceptEncoding = request.headers.getOrDefault("Accept-Encoding", "");
+
+        if (acceptEncoding.contains("gzip")) {
+            try {
+                byte[] compressedBody = CompressionUtil.compressGzip(echoString);
+                HttpResponse response = new HttpResponse(StatusCode.OK, compressedBody, "text/plain");
+                response.addHeader("Content-Encoding", "gzip");
+                return response;
+            } catch (IOException e) {
+                return new HttpResponse(StatusCode.OK, echoString);
+            }
+        } else {
+            return new HttpResponse(StatusCode.OK, echoString);
+        }
+    }
+
+    private HttpResponse processFilesRequest(String path, HttpRequest request, String[] args) {
+        String filename = path.substring("/files/".length());
+        File f = new File(args[1], filename);
+
+        if ("POST".equals(request.method)) {
+            try {
+                Files.write(f.toPath(), request.body.getBytes());
+                return new HttpResponse(StatusCode.CREATED, "");
+            } catch (IOException e) {
+                return new HttpResponse(StatusCode.NOT_FOUND, "");
+            }
+        } else if ("GET".equals(request.method)) {
+            if (f.exists()) {
+                try {
+                    byte[] content = Files.readAllBytes(f.toPath());
+                    return new HttpResponse(StatusCode.OK, new String(content), "application/octet-stream");
+                } catch (IOException e) {
+                    return new HttpResponse(StatusCode.NOT_FOUND, "");
+                }
+            } else {
+                return new HttpResponse(StatusCode.NOT_FOUND, "");
+            }
+        }
+        return new HttpResponse(StatusCode.NOT_FOUND, "");
+    }
+
+    private void sendResponse(HttpResponse response, BufferedWriter out, OutputStream binaryOut) throws IOException {
+        if (response.hasBinaryBody()) {
+            response.sendWithBinary(out, binaryOut);
+        } else {
+            response.send(out);
         }
     }
 }

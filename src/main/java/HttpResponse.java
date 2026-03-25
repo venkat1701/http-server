@@ -56,6 +56,10 @@ public class HttpResponse {
         return this;
     }
 
+    public boolean hasBinaryBody() {
+        return binaryBody != null && binaryBody.length > 0;
+    }
+
     public void send(BufferedWriter out) throws IOException {
         out.write(String.format("HTTP/1.1 %d %s\r\n", statusCode.getCode(), statusCode.getMessage()));
 
