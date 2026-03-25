@@ -3,6 +3,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -14,6 +15,7 @@ public class URLParser {
             System.out.println("accepted new connection");
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            OutputStream binaryOut = socket.getOutputStream();
 
             HttpRequest request = HttpRequest.parseFromSocket(in);
 
@@ -29,7 +31,7 @@ public class URLParser {
                             byte[] compressedBody = CompressionUtil.compressGzip(echoString);
                             HttpResponse response = new HttpResponse(StatusCode.OK, compressedBody, "text/plain");
                             response.addHeader("Content-Encoding", "gzip");
-                            response.send(out);
+                            response.sendWithBinary(out, binaryOut);
                         } catch (IOException e) {
                             new HttpResponse(StatusCode.OK, echoString).send(out);
                         }

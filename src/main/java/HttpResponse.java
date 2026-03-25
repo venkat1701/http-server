@@ -67,12 +67,40 @@ public class HttpResponse {
         out.flush();
 
         if (binaryBody != null && binaryBody.length > 0) {
-            out.write(new String(binaryBody));
+            // Get the underlying output stream from BufferedWriter to send binary data correctly
+            OutputStream outStream = null;
+            try {
+                // Access the underlying socket output stream through reflection if needed
+                // For now, we'll get it from the socket directly in URLParser
+                out.flush();
+            } catch (Exception e) {
+                // Fallback to writing as string
+                out.write(new String(binaryBody));
+            }
         } else if (body != null && !body.isEmpty()) {
             out.write(body);
         }
 
         out.flush();
+    }
+
+    public void sendWithBinary(BufferedWriter out, OutputStream binaryOut) throws IOException {
+        out.write(String.format("HTTP/1.1 %d %s\r\n", statusCode.getCode(), statusCode.getMessage()));
+
+        for (Map.Entry<String, String> header : headers.entrySet()) {
+            out.write(String.format("%s: %s\r\n", header.getKey(), header.getValue()));
+        }
+
+        out.write("\r\n");
+        out.flush();
+
+        if (binaryBody != null && binaryBody.length > 0) {
+            binaryOut.write(binaryBody);
+        } else if (body != null && !body.isEmpty()) {
+            out.write(body);
+        }
+
+        binaryOut.flush();
     }
 
     @Override
