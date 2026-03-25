@@ -22,7 +22,13 @@ public class URLParser {
                 case "/index.html" -> new HttpResponse(StatusCode.OK, "<html><body>Hello, world!</body></html>").send(out);
                 case String s when s.startsWith("/echo/") -> {
                     String echoString = s.substring("/echo/".length());
-                    new HttpResponse(StatusCode.OK, echoString).send(out);
+                    HttpResponse response = new HttpResponse(StatusCode.OK, echoString);
+                    String acceptEncoding = request.headers.getOrDefault("Accept-Encoding", "");
+                    if (acceptEncoding.contains("gzip")) {
+                        response.addHeader("Content-Encoding", "gzip");
+                    }
+
+                    response.send(out);
                 }
                 case String s when s.startsWith("/files/") -> {
                     String filename = s.substring("/files/".length());
